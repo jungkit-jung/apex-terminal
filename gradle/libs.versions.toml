@@ -37,7 +37,6 @@ protobuf                = "4.28.3"
 web3j                   = "4.12.3"
 
 # Chart / UI
-wickplot                = "0.1.0"
 
 # Crypto
 crypto-commons          = "1.79"
@@ -111,7 +110,6 @@ web3j-core                  = { module = "org.web3j:core", version.ref = "web3j"
 commons-crypto              = { module = "org.bouncycastle:bcprov-jdk18on", version.ref = "crypto-commons" }
 
 # Wickplot (OHLC chart base)
-wickplot                    = { module = "com.github.earlisreal:wickplot", version.ref = "wickplot" }
 
 # Testing
 junit                       = { module = "junit:junit", version.ref = "junit" }

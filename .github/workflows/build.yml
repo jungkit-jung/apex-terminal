@@ -25,36 +25,22 @@ jobs:
           java-version: '17'
           cache: 'gradle'
 
-      - name: Set up Android SDK & NDK
-        uses: android-actions/setup-android@v3
-        with:
-          cmdline-tools-version: 11076708
-
-      - name: Install NDK & CMake
-        run: |
-          sdkmanager "ndk;25.1.8937393" "cmake;3.22.1"
-
-      - name: Grant Execute Permission to Gradlew
-        run: chmod +x gradlew || true
-
-      - name: Generate Gradle Wrapper if Missing
-        run: |
-          if [ ! -f "gradlew" ]; then
-            gradle wrapper --gradle-version 8.7
-          fi
-          chmod +x gradlew
-
       - name: Setup Keystore
         run: |
           mkdir -p app
           if [ -n "${{ secrets.KEYSTORE_BASE64 }}" ]; then
             echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > app/release.jks
           else
-            echo "Generating self-signed release keystore for standalone CI..."
+            echo "Generating self-signed release keystore for CI..."
             keytool -genkey -v -keystore app/release.jks -alias trading_key -keyalg RSA -keysize 2048 -validity 10000 -storepass terminalpass -keypass terminalpass -dname "CN=ApexTerminal, OU=Trading, O=Standalone, L=Jakarta, S=JK, C=ID"
           fi
 
-      - name: Build Debug & Release APK
+      - name: Setup Gradle Wrapper
+        run: |
+          gradle wrapper
+          chmod +x gradlew
+
+      - name: Build Debug and Release APK
         run: |
           ./gradlew assembleDebug assembleRelease --stacktrace
 
