@@ -11,8 +11,10 @@ class LiquidityHeatmapEngine(
     // 2D Matrix: matrix[row * timeColumns + col] = volume
     private val matrix = FloatArray(priceRows * timeColumns)
     private var currentColumn = 0
-    private var minPrice = 0.0
-    private var maxPrice = 0.0
+    var minPrice = 0.0
+        private set
+    var maxPrice = 0.0
+        private set
     private var priceStep = 1.0
 
     // Reusable ARGB pixel buffer for Canvas/Bitmap blitting
