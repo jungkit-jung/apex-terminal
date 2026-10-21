@@ -13,7 +13,7 @@ val TerminalGrid = Color(0xFF1E222D)
 
 // Trading Action Colors
 val BullGreen = Color(0xFF00E676)
-val BearRed = Color(0xFF00E676)
+val BearRed = Color(0xFFFF1744)
 val ElectricEmerald = Color(0xFF00E676)
 val VibrantCrimson = Color(0xFFFF1744)
 

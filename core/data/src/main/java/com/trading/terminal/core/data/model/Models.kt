@@ -81,6 +81,8 @@ data class MarketMetrics(
     val openInterestUsd: Double,
     val fundingRate: Double,
     val nextFundingTime: Long,
+    val markPrice: Double = 0.0,
+    val priceChangePct24h: Double = 0.0,
     val topTraderLongShortRatio: Double = 1.0,
     val globalLongShortRatio: Double = 1.0
 )

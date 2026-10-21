@@ -34,10 +34,10 @@ class MainActivity : ComponentActivity() {
             TerminalTheme {
                 var symbol by remember { mutableStateOf("BTCUSDT") }
                 var exchange by remember { mutableStateOf(ExchangeSource.BINANCE_FUTURES) }
-                var currentPrice by remember { mutableDoubleStateOf(68500.0) }
-                var priceChangePct by remember { mutableDoubleStateOf(2.45) }
-                var fundingRate by remember { mutableDoubleStateOf(0.0001) }
-                var openInterestUsd by remember { mutableDoubleStateOf(450_000_000.0) }
+                var currentPrice by remember { mutableDoubleStateOf(0.0) }
+                var priceChangePct by remember { mutableDoubleStateOf(0.0) }
+                var fundingRate by remember { mutableDoubleStateOf(0.0) }
+                var openInterestUsd by remember { mutableDoubleStateOf(0.0) }
 
                 var bids by remember { mutableStateOf<List<PriceLevel>>(emptyList()) }
                 var asks by remember { mutableStateOf<List<PriceLevel>>(emptyList()) }
@@ -60,6 +60,8 @@ class MainActivity : ComponentActivity() {
                                     asks = orderBookEngine.getTopAsks(30)
                                     fundingRate = metrics.fundingRate
                                     openInterestUsd = metrics.openInterestUsd
+                                    priceChangePct = metrics.priceChangePct24h
+                                    if (metrics.markPrice > 0) currentPrice = metrics.markPrice
                                     heatmapEngine.updatePriceRange(snap.midPrice)
                                 }
                             } catch (e: Exception) {

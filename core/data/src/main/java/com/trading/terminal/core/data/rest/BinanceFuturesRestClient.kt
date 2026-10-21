@@ -88,12 +88,24 @@ class BinanceFuturesRestClient {
             // optional
         }
 
+        // 4. 24h Ticker for price change %
+        var priceChangePct = 0.0
+        try {
+            val tickerReq = Request.Builder().url("$baseUrl/fapi/v1/ticker/24hr?symbol=$sym").build()
+            client.newCall(tickerReq).execute().use { res ->
+                val json = JSONObject(res.body?.string() ?: "{}")
+                priceChangePct = json.optString("priceChangePercent", "0.0").toDouble()
+            }
+        } catch (e: Exception) { /* ignore */ }
+
         MarketMetrics(
             symbol = sym,
             openInterest = oi,
             openInterestUsd = oi * markPrice,
             fundingRate = funding,
             nextFundingTime = nextFunding,
+            markPrice = markPrice,
+            priceChangePct24h = priceChangePct,
             topTraderLongShortRatio = topRatio
         )
     }
