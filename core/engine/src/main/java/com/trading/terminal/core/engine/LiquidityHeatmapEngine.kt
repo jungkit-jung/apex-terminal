@@ -2,6 +2,7 @@ package com.trading.terminal.core.engine
 
 import com.trading.terminal.core.data.model.PriceLevel
 import kotlin.math.ln
+import kotlin.math.max
 import kotlin.math.roundToInt
 
 class LiquidityHeatmapEngine(
@@ -20,19 +21,29 @@ class LiquidityHeatmapEngine(
     // Reusable ARGB pixel buffer for Canvas/Bitmap blitting
     val pixelBuffer = IntArray(priceRows * timeColumns)
 
-    fun updatePriceRange(centerPrice: Double, spanPercentage: Double = 0.015) {
-        val span = centerPrice * spanPercentage
+    fun updatePriceRange(centerPrice: Double, spanPercentage: Double = 0.004) {
+        val span = max(centerPrice * spanPercentage, 10.0)
         minPrice = centerPrice - span
         maxPrice = centerPrice + span
         priceStep = (maxPrice - minPrice) / priceRows
         if (priceStep <= 0.0) priceStep = 1.0
     }
 
+    fun setBounds(min: Double, max: Double) {
+        if (max > min && min > 0) {
+            minPrice = min
+            maxPrice = max
+            priceStep = (maxPrice - minPrice) / priceRows
+            if (priceStep <= 0.0) priceStep = 1.0
+        }
+    }
+
     /**
      * Record a snapshot of the current Order Book into the current time column.
+     * Incorporates slight vertical blending so liquidity walls appear as continuous thermal bands.
      */
     fun recordDepthSnapshot(bids: List<PriceLevel>, asks: List<PriceLevel>) {
-        if (minPrice <= 0.0) return
+        if (minPrice <= 0.0 || priceStep <= 0.0) return
 
         val col = currentColumn
 
@@ -41,19 +52,25 @@ class LiquidityHeatmapEngine(
             matrix[r * timeColumns + col] = 0f
         }
 
-        // Map Bids
+        // Map Bids with smooth thermal band spreading
         for (b in bids) {
             val r = priceToRow(b.price)
             if (r in 0 until priceRows) {
-                matrix[r * timeColumns + col] += b.quantity.toFloat()
+                val q = b.quantity.toFloat()
+                matrix[r * timeColumns + col] += q
+                if (r > 0) matrix[(r - 1) * timeColumns + col] += q * 0.40f
+                if (r < priceRows - 1) matrix[(r + 1) * timeColumns + col] += q * 0.40f
             }
         }
 
-        // Map Asks
+        // Map Asks with smooth thermal band spreading
         for (a in asks) {
             val r = priceToRow(a.price)
             if (r in 0 until priceRows) {
-                matrix[r * timeColumns + col] += a.quantity.toFloat()
+                val q = a.quantity.toFloat()
+                matrix[r * timeColumns + col] += q
+                if (r > 0) matrix[(r - 1) * timeColumns + col] += q * 0.40f
+                if (r < priceRows - 1) matrix[(r + 1) * timeColumns + col] += q * 0.40f
             }
         }
 
@@ -69,6 +86,7 @@ class LiquidityHeatmapEngine(
 
     /**
      * Render the 2D matrix into the 32-bit ARGB pixelBuffer.
+     * Unrolls the circular buffer so time strictly flows left-to-right (oldest -> live).
      * Uses Logarithmic Normalization: ln(1 + V) / ln(1 + MaxV)
      */
     fun bakePixelBuffer(): IntArray {
@@ -81,16 +99,19 @@ class LiquidityHeatmapEngine(
 
         for (r in 0 until priceRows) {
             for (c in 0 until timeColumns) {
-                val idx = r * timeColumns + c
+                // Chronological unroll: oldest column at c=0, newest at c=timeColumns-1
+                val srcCol = (currentColumn + c) % timeColumns
+                val idx = r * timeColumns + srcCol
+                val outIdx = r * timeColumns + c
                 val vol = matrix[idx]
 
                 if (vol <= 0.0001f) {
-                    pixelBuffer[idx] = 0xFF08090C.toInt() // Dark Background
+                    pixelBuffer[outIdx] = 0xFF08090C.toInt() // Dark Background
                     continue
                 }
 
                 val norm = (ln(1.0f + vol) / logMax).coerceIn(0f, 1f)
-                pixelBuffer[idx] = mapThermalColor(norm)
+                pixelBuffer[outIdx] = mapThermalColor(norm)
             }
         }
         return pixelBuffer

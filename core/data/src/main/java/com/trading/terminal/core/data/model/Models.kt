@@ -72,6 +72,24 @@ data class LiquidationEvent(
 )
 
 /**
+ * Historical and live candlestick / kline data
+ */
+@Serializable
+data class Candle(
+    val openTime: Long,
+    val open: Double,
+    val high: Double,
+    val low: Double,
+    val close: Double,
+    val volume: Double,
+    val takerBuyVolume: Double, // Ask volume
+    val closeTime: Long
+) {
+    val takerSellVolume: Double get() = (volume - takerBuyVolume).coerceAtLeast(0.0)
+    val delta: Double get() = takerBuyVolume - takerSellVolume
+}
+
+/**
  * Open Interest & Sentiment data
  */
 @Serializable

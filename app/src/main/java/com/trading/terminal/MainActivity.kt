@@ -132,16 +132,20 @@ class MainActivity : ComponentActivity() {
         onHeatmap: suspend (IntArray) -> Unit,
         onLiqs:    suspend (List<LiquidationEvent>) -> Unit
     ) {
-        // Step 1: REST snapshot to get initial price + DOM
+        // Step 1: REST snapshot to get initial price + DOM + historical candles
         try {
             val snap = restClient.getDepthSnapshot(symbol)
             val mid  = snap.midPrice
             if (mid > 0) {
                 onPrice(mid)
-                heatmapEngine.updatePriceRange(mid)
+                heatmapEngine.updatePriceRange(mid, 0.004)
                 orderBookEngine.setSnapshot(snap)
-                onBids(orderBookEngine.getTopBids(30))
-                onAsks(orderBookEngine.getTopAsks(30))
+                val deepBids = orderBookEngine.getTopBids(100)
+                val deepAsks = orderBookEngine.getTopAsks(100)
+                heatmapEngine.recordDepthSnapshot(deepBids, deepAsks)
+                onBids(deepBids.take(30))
+                onAsks(deepAsks.take(30))
+                onHeatmap(heatmapEngine.bakePixelBuffer().copyOf())
             }
 
             // REST metrics (funding, OI, 24h change)
@@ -151,7 +155,14 @@ class MainActivity : ComponentActivity() {
             onPct(metrics.priceChangePct24h)
             if (metrics.markPrice > 0) {
                 onPrice(metrics.markPrice)
-                heatmapEngine.updatePriceRange(metrics.markPrice)
+                heatmapEngine.updatePriceRange(metrics.markPrice, 0.004)
+            }
+
+            // Seed historical 1m candles so chart is immediately populated
+            val klines = restClient.getKlines(symbol, "1m", 30)
+            if (klines.isNotEmpty()) {
+                footprintEngine.initFromKlines(klines)
+                onBars(footprintEngine.getBars())
             }
         } catch (e: Exception) {
             // Network failure – will still connect WS below
@@ -171,7 +182,7 @@ class MainActivity : ComponentActivity() {
                 val newPrice = tick.price
                 onPrice(newPrice)
                 // Init heatmap range from first tick if REST failed
-                if (heatmapEngine.minPrice <= 0) heatmapEngine.updatePriceRange(newPrice)
+                if (heatmapEngine.minPrice <= 0) heatmapEngine.updatePriceRange(newPrice, 0.004)
 
                 footprintEngine.onTick(tick)
                 cvdEngine.onTick(tick)
@@ -196,12 +207,12 @@ class MainActivity : ComponentActivity() {
         val domJob = launch {
             while (isActive) {
                 delay(100)
-                val newBids = orderBookEngine.getTopBids(30)
-                val newAsks = orderBookEngine.getTopAsks(30)
-                onBids(newBids)
-                onAsks(newAsks)
+                val deepBids = orderBookEngine.getTopBids(100)
+                val deepAsks = orderBookEngine.getTopAsks(100)
+                onBids(deepBids.take(30))
+                onAsks(deepAsks.take(30))
                 if (heatmapEngine.minPrice > 0) {
-                    heatmapEngine.recordDepthSnapshot(newBids, newAsks)
+                    heatmapEngine.recordDepthSnapshot(deepBids, deepAsks)
                     onHeatmap(heatmapEngine.bakePixelBuffer().copyOf())
                 }
             }

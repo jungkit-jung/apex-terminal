@@ -42,7 +42,7 @@ fun DOMLadderView(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(TerminalPanel)
-                .padding(horizontal = 8.dp, vertical = 5.dp),
+                .padding(horizontal = 8.dp, vertical = 4.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -65,11 +65,11 @@ fun DOMLadderView(
             )
         }
 
-        // Imbalance bar (green=bid, red=ask)
+        // Imbalance meter bar (green=bid, red=ask)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(3.dp)
+                .height(2.5.dp)
         ) {
             val buyPct = ((imbalanceRatio + 1.0) / 2.0).toFloat().coerceIn(0.01f, 0.99f)
             Box(
@@ -91,17 +91,39 @@ fun DOMLadderView(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(TerminalBackground)
-                .padding(vertical = 3.dp, horizontal = 6.dp),
-            horizontalArrangement = Arrangement.SpaceBetween
+                .padding(vertical = 3.dp, horizontal = 5.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("BID", color = ElectricEmerald, fontSize = 9.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-            Text("PRICE", color = TextSecondary, fontSize = 9.sp, fontWeight = FontWeight.Bold,
-                modifier = Modifier.weight(1.2f), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
-            Text("ASK", color = VibrantCrimson, fontSize = 9.sp, fontWeight = FontWeight.Bold,
-                modifier = Modifier.weight(1f), textAlign = androidx.compose.ui.text.style.TextAlign.End)
+            Text(
+                text = "BID",
+                color = ElectricEmerald,
+                fontSize = 9.sp,
+                fontWeight = FontWeight.Bold,
+                fontFamily = FontFamily.Monospace,
+                modifier = Modifier.weight(1f)
+            )
+            Text(
+                text = "PRICE",
+                color = TextSecondary,
+                fontSize = 9.sp,
+                fontWeight = FontWeight.Bold,
+                fontFamily = FontFamily.Monospace,
+                modifier = Modifier.weight(1.2f),
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            )
+            Text(
+                text = "ASK",
+                color = VibrantCrimson,
+                fontSize = 9.sp,
+                fontWeight = FontWeight.Bold,
+                fontFamily = FontFamily.Monospace,
+                modifier = Modifier.weight(1f),
+                textAlign = androidx.compose.ui.text.style.TextAlign.End
+            )
         }
 
-        // ─── Asks (top half, reversed so best ask is at center) ───────────
+        // ─── Asks (top half, reversed so best ask is next to center) ───────
         LazyColumn(
             modifier = Modifier
                 .fillMaxWidth()
@@ -109,7 +131,7 @@ fun DOMLadderView(
             state = askListState,
             reverseLayout = true
         ) {
-            items(asks.take(20), key = { it.price }) { ask ->
+            items(asks.take(25), key = { it.price }) { ask ->
                 DOMRow(
                     price = ask.price,
                     bidQty = null,
@@ -129,26 +151,25 @@ fun DOMLadderView(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(TerminalPanel)
-                .padding(vertical = 4.dp),
+                .padding(vertical = 3.dp),
             contentAlignment = Alignment.Center
         ) {
             Row(
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Best bid price + spread + best ask price
                 Text(
-                    text = if (currentPrice > 1000)
+                    text = if (currentPrice >= 1000)
                         String.format("%,.1f", currentPrice)
                     else
                         String.format("%.4f", currentPrice),
-                    color = Color.White,
-                    fontSize = 13.sp,
+                    color = ElectricEmerald,
+                    fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
                     fontFamily = FontFamily.Monospace
                 )
                 if (spread > 0) {
-                    Spacer(Modifier.width(4.dp))
+                    Spacer(Modifier.width(6.dp))
                     Text(
                         text = String.format("±%.2f", spread),
                         color = TextSecondary,
@@ -166,7 +187,7 @@ fun DOMLadderView(
                 .weight(1f),
             state = bidListState
         ) {
-            items(bids.take(20), key = { it.price }) { bid ->
+            items(bids.take(25), key = { it.price }) { bid ->
                 DOMRow(
                     price = bid.price,
                     bidQty = bid.quantity,
@@ -184,7 +205,7 @@ fun DOMLadderView(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(20.dp)
+                .height(18.dp)
                 .background(TerminalBackground)
                 .padding(horizontal = 6.dp),
             contentAlignment = Alignment.CenterStart
@@ -195,8 +216,8 @@ fun DOMLadderView(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = "B: ${String.format("%.1f", bidVol)}",
-                    color = ElectricEmerald.copy(alpha = 0.8f),
+                    text = "B: ${formatQty(bidVol)}",
+                    color = ElectricEmerald.copy(alpha = 0.85f),
                     fontSize = 8.sp,
                     fontFamily = FontFamily.Monospace
                 )
@@ -210,8 +231,8 @@ fun DOMLadderView(
                     )
                 }
                 Text(
-                    text = "A: ${String.format("%.1f", askVol)}",
-                    color = VibrantCrimson.copy(alpha = 0.8f),
+                    text = "A: ${formatQty(askVol)}",
+                    color = VibrantCrimson.copy(alpha = 0.85f),
                     fontSize = 8.sp,
                     fontFamily = FontFamily.Monospace
                 )
@@ -228,80 +249,94 @@ private fun DOMRow(
     maxQty: Double,
     isCurrentPrice: Boolean
 ) {
-    Box(
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(18.dp)
-            .background(if (isCurrentPrice) TerminalBorder else Color.Transparent)
+            .height(19.dp)
+            .background(if (isCurrentPrice) TerminalPanel else Color.Transparent),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        // Depth bar fills from edge toward center
-        if (bidQty != null && maxQty > 0) {
-            val barRatio = (bidQty / maxQty).toFloat().coerceIn(0f, 1f)
-            // Use a logarithmic scaling for better visual
-            val logRatio = (kotlin.math.ln(1.0 + bidQty) / kotlin.math.ln(1.0 + maxQty)).toFloat().coerceIn(0f, 1f)
-            Box(
-                modifier = Modifier
-                    .fillMaxHeight()
-                    .fillMaxWidth(logRatio * 0.5f)
-                    .align(Alignment.CenterStart)
-                    .background(ElectricEmerald.copy(alpha = 0.18f))
-            )
-        }
-
-        if (askQty != null && maxQty > 0) {
-            val logRatio = (kotlin.math.ln(1.0 + askQty) / kotlin.math.ln(1.0 + maxQty)).toFloat().coerceIn(0f, 1f)
-            Box(
-                modifier = Modifier
-                    .fillMaxHeight()
-                    .fillMaxWidth(logRatio * 0.5f)
-                    .align(Alignment.CenterEnd)
-                    .background(VibrantCrimson.copy(alpha = 0.18f))
-            )
-        }
-
-        // Row content
-        Row(
+        // 1. BID CELL (depth bar stays strictly inside this column)
+        Box(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 5.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+                .weight(1f)
+                .fillMaxHeight(),
+            contentAlignment = Alignment.CenterStart
         ) {
-            // Bid qty
+            if (bidQty != null && maxQty > 0) {
+                val logRatio = (kotlin.math.ln(1.0 + bidQty) / kotlin.math.ln(1.0 + maxQty)).toFloat().coerceIn(0f, 1f)
+                Box(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .fillMaxWidth(logRatio)
+                        .align(Alignment.CenterEnd)
+                        .background(ElectricEmerald.copy(alpha = 0.22f))
+                )
+            }
             Text(
                 text = bidQty?.let { formatQty(it) } ?: "",
-                color = if (bidQty != null && bidQty > maxQty * 0.5) ElectricEmerald else ElectricEmerald.copy(alpha = 0.7f),
+                color = if (bidQty != null && bidQty > maxQty * 0.4) ElectricEmerald else ElectricEmerald.copy(alpha = 0.8f),
                 fontSize = 9.sp,
                 fontFamily = FontFamily.Monospace,
-                modifier = Modifier.weight(1f)
+                fontWeight = if (bidQty != null && bidQty > maxQty * 0.4) FontWeight.Bold else FontWeight.Normal,
+                modifier = Modifier.padding(start = 4.dp)
             )
+        }
 
-            // Price (center)
+        // 2. PRICE CELL (center, completely isolated from depth bars)
+        Box(
+            modifier = Modifier
+                .weight(1.2f)
+                .fillMaxHeight()
+                .background(if (isCurrentPrice) TerminalBorder else TerminalSurface),
+            contentAlignment = Alignment.Center
+        ) {
             Text(
-                text = if (price > 1000) String.format("%,.1f", price) else String.format("%.4f", price),
+                text = if (price >= 1000) String.format("%,.1f", price) else String.format("%.4f", price),
                 color = if (isCurrentPrice) Color.White else TextPrimary,
-                fontSize = 9.sp,
-                fontWeight = if (isCurrentPrice) FontWeight.Bold else FontWeight.Normal,
-                fontFamily = FontFamily.Monospace,
-                modifier = Modifier.weight(1.2f),
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                fontSize = 9.5.sp,
+                fontWeight = if (isCurrentPrice) FontWeight.Bold else FontWeight.Medium,
+                fontFamily = FontFamily.Monospace
             )
+        }
 
-            // Ask qty
+        // 3. ASK CELL (depth bar stays strictly inside this column)
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight(),
+            contentAlignment = Alignment.CenterEnd
+        ) {
+            if (askQty != null && maxQty > 0) {
+                val logRatio = (kotlin.math.ln(1.0 + askQty) / kotlin.math.ln(1.0 + maxQty)).toFloat().coerceIn(0f, 1f)
+                Box(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .fillMaxWidth(logRatio)
+                        .align(Alignment.CenterStart)
+                        .background(VibrantCrimson.copy(alpha = 0.22f))
+                )
+            }
             Text(
                 text = askQty?.let { formatQty(it) } ?: "",
-                color = if (askQty != null && askQty > maxQty * 0.5) VibrantCrimson else VibrantCrimson.copy(alpha = 0.7f),
+                color = if (askQty != null && askQty > maxQty * 0.4) VibrantCrimson else VibrantCrimson.copy(alpha = 0.8f),
                 fontSize = 9.sp,
                 fontFamily = FontFamily.Monospace,
-                modifier = Modifier.weight(1f),
-                textAlign = androidx.compose.ui.text.style.TextAlign.End
+                fontWeight = if (askQty != null && askQty > maxQty * 0.4) FontWeight.Bold else FontWeight.Normal,
+                modifier = Modifier.padding(end = 4.dp)
             )
         }
     }
 }
 
+/**
+ * Format quantity dynamically without truncating fractional crypto orders to 0.00
+ */
 private fun formatQty(qty: Double): String = when {
-    qty >= 1000.0 -> String.format("%.0fK", qty / 1000.0)
+    qty >= 1000.0 -> String.format("%.1fK", qty / 1000.0)
+    qty >= 100.0  -> String.format("%.0f", qty)
     qty >= 10.0   -> String.format("%.1f", qty)
-    else          -> String.format("%.2f", qty)
+    qty >= 1.0    -> String.format("%.2f", qty)
+    qty >= 0.01   -> String.format("%.3f", qty)
+    else          -> String.format("%.4f", qty)
 }

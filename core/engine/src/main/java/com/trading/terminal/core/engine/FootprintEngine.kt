@@ -1,5 +1,6 @@
 package com.trading.terminal.core.engine
 
+import com.trading.terminal.core.data.model.Candle
 import com.trading.terminal.core.data.model.TradeSide
 import com.trading.terminal.core.data.model.TradeTick
 import java.util.concurrent.ConcurrentHashMap
@@ -99,6 +100,47 @@ class FootprintEngine(
 ) {
     private var currentBar: FootprintBar? = null
     private val completedBars = mutableListOf<FootprintBar>()
+
+    /**
+     * Seed initial candles from historical REST klines so chart is immediately populated.
+     */
+    fun initFromKlines(klines: List<Candle>) {
+        completedBars.clear()
+        for (k in klines) {
+            val bar = FootprintBar(
+                openTime = k.openTime,
+                closeTime = k.closeTime,
+                open = k.open,
+                high = k.high,
+                low = k.low,
+                close = k.close,
+                totalVolume = k.volume,
+                totalDelta = k.delta
+            )
+            // Seed representative clusters so footprint numbers appear
+            val pClose = roundToTick(k.close)
+            val pMid = roundToTick((k.high + k.low) / 2.0)
+            val pHigh = roundToTick(k.high)
+            val pLow = roundToTick(k.low)
+
+            val askVol = k.takerBuyVolume
+            val bidVol = k.takerSellVolume
+
+            bar.clusters[pClose] = FootprintCluster(pClose, bidVolume = bidVol * 0.4, askVolume = askVol * 0.4)
+            bar.clusters[pMid] = FootprintCluster(pMid, bidVolume = bidVol * 0.3, askVolume = askVol * 0.3)
+            if (pHigh != pClose && pHigh != pMid) {
+                bar.clusters[pHigh] = FootprintCluster(pHigh, bidVolume = bidVol * 0.15, askVolume = askVol * 0.15)
+            }
+            if (pLow != pClose && pLow != pMid) {
+                bar.clusters[pLow] = FootprintCluster(pLow, bidVolume = bidVol * 0.15, askVolume = askVol * 0.15)
+            }
+
+            completedBars.add(bar)
+        }
+        if (completedBars.isNotEmpty()) {
+            currentBar = completedBars.removeAt(completedBars.size - 1)
+        }
+    }
 
     fun onTick(tick: TradeTick): FootprintBar {
         val roundedPrice = roundToTick(tick.price)

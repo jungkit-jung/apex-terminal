@@ -54,14 +54,11 @@ fun TerminalScreen(
 ) {
     var displayMode by remember { mutableStateOf(TerminalDisplayMode.SPLIT_DOM) }
 
-    // Dynamic price bounds from live DOM data
-    val midPrice = currentPrice
-    val priceSpread = if (bids.isNotEmpty() && asks.isNotEmpty()) {
-        maxOf((asks.lastOrNull()?.price ?: midPrice * 1.01) - (bids.lastOrNull()?.price ?: midPrice * 0.99),
-              midPrice * 0.002)
-    } else midPrice * 0.01
-    val minP = (bids.lastOrNull()?.price ?: (midPrice - priceSpread)).coerceAtMost(midPrice - priceSpread * 0.5)
-    val maxP = (asks.lastOrNull()?.price ?: (midPrice + priceSpread)).coerceAtLeast(midPrice + priceSpread * 0.5)
+    // Dynamic price bounds matching Heatmap Engine span (0.004 = 0.4% centered on midPrice)
+    val midPrice = if (currentPrice > 0) currentPrice else (bids.firstOrNull()?.price ?: 80000.0)
+    val span = maxOf(midPrice * 0.004, 20.0)
+    val minP = midPrice - span
+    val maxP = midPrice + span
 
     // DOM Imbalance
     val totalBidQty = bids.take(20).sumOf { it.quantity }
@@ -265,7 +262,7 @@ fun TerminalScreen(
                             minPrice = minP,
                             maxPrice = maxP,
                             modifier = Modifier
-                                .weight(0.58f)
+                                .weight(0.55f)
                                 .fillMaxHeight()
                         )
                         // Divider
@@ -281,7 +278,7 @@ fun TerminalScreen(
                             imbalanceRatio = domImbalance,
                             currentPrice = currentPrice,
                             modifier = Modifier
-                                .weight(0.42f)
+                                .weight(0.45f)
                                 .fillMaxHeight()
                         )
                     }

@@ -52,6 +52,33 @@ class BinanceFuturesRestClient {
         }
     }
 
+    suspend fun getKlines(symbol: String = "BTCUSDT", interval: String = "1m", limit: Int = 30): List<com.trading.terminal.core.data.model.Candle> = withContext(Dispatchers.IO) {
+        val sym = symbol.uppercase()
+        val url = "$baseUrl/fapi/v1/klines?symbol=$sym&interval=$interval&limit=$limit"
+        val request = Request.Builder().url(url).build()
+
+        client.newCall(request).execute().use { res ->
+            val arr = JSONArray(res.body?.string() ?: "[]")
+            val list = ArrayList<com.trading.terminal.core.data.model.Candle>()
+            for (i in 0 until arr.length()) {
+                val row = arr.getJSONArray(i)
+                list.add(
+                    com.trading.terminal.core.data.model.Candle(
+                        openTime = row.getLong(0),
+                        open = row.getString(1).toDouble(),
+                        high = row.getString(2).toDouble(),
+                        low = row.getString(3).toDouble(),
+                        close = row.getString(4).toDouble(),
+                        volume = row.getString(5).toDouble(),
+                        takerBuyVolume = row.getString(9).toDouble(),
+                        closeTime = row.getLong(6)
+                    )
+                )
+            }
+            list
+        }
+    }
+
     suspend fun getMarketMetrics(symbol: String = "BTCUSDT"): MarketMetrics = withContext(Dispatchers.IO) {
         val sym = symbol.uppercase()
         // 1. Open Interest
